@@ -1,0 +1,27 @@
+<p>--- title: &quot;Reproducible Research: Peer Assessment 1&quot; output:   html_document:  keep_md: true ---</p>
+
+<p> ## Loading and preprocessing the data &#96;&#96;&#96;{r loaddata} unzip(zipfile=&quot;activity.zip&quot;) data <- read.csv(&quot;activity.csv&quot;) &#96;&#96;&#96;</p>
+
+<p>## What is mean total number of steps taken per day? &#96;&#96;&#96;{r} library(ggplot2) total.steps <- tapply(data$steps, data$date, FUN=sum, na.rm=TRUE) qplot(total.steps, binwidth=1000, xlab=&quot;total number of steps taken each day&quot;) mean(total.steps, na.rm=TRUE) median(total.steps, na.rm=TRUE) &#96;&#96;&#96;</p>
+
+<p> ## What is the average daily activity pattern? &#96;&#96;&#96;{r} library(ggplot2) averages <- aggregate(x=list(steps=data$steps), by=list(interval=data$interval),  FUN=mean, na.rm=TRUE) ggplot(data=averages, aes(x=interval, y=steps)) +  geom_line() +  xlab(&quot;5-minute interval&quot;) +  ylab(&quot;average number of steps taken&quot;) &#96;&#96;&#96;</p>
+
+<p>On average across all the days in the dataset, the 5-minute interval contains the maximum number of steps? &#96;&#96;&#96;{r} averages[which.max(averages$steps),] &#96;&#96;&#96;</p>
+
+<p>## Imputing missing values There are many days/intervals where there are missing values (coded as &#96;NA&#96;). The presence of missing days may introduce bias into some calculations or summaries of the data.</p>
+
+<p>&#96;&#96;&#96;{r how_many_missing} missing <- is.na(data$steps) # How many missing table(missing) &#96;&#96;&#96;</p>
+
+<p>All of the missing values are filled in with mean value for that 5-minute interval.</p>
+
+<p>&#96;&#96;&#96;{r} # Replace each missing value with the mean value of its 5-minute interval fill.value <- function(steps, interval) {  filled <- NA  if (!is.na(steps))  filled <- c(steps)  else  filled <- (averages[averages$interval==interval, &quot;steps&quot;])  return(filled) } filled.data <- data filled.data$steps <- mapply(fill.value, filled.data$steps, filled.data$interval) &#96;&#96;&#96; Now, using the filled data set, let's make a histogram of the total number of steps taken each day and calculate the mean and median total number of steps.</p>
+
+<p>&#96;&#96;&#96;{r} total.steps <- tapply(filled.data$steps, filled.data$date, FUN=sum) qplot(total.steps, binwidth=1000, xlab=&quot;total number of steps taken each day&quot;) mean(total.steps) median(total.steps) &#96;&#96;&#96;</p>
+
+<p>Mean and median values are higher after imputing missing data. The reason is that in the original data, there are some days with &#96;steps&#96; values &#96;NA&#96; for  any &#96;interval&#96;. The total number of steps taken in such days are set to 0s by default. However, after replacing missing &#96;steps&#96; values with the mean &#96;steps&#96; of associated &#96;interval&#96; value, these 0 values are removed from the histogram of total number of steps taken each day.</p>
+
+<p> ## Are there differences in activity patterns between weekdays and weekends? First, let's find the day of the week for each measurement in the dataset. In this part, we use the dataset with the filled-in values.</p>
+
+<p>&#96;&#96;&#96;{r} weekday.or.weekend <- function(date) {  day <- weekdays(date)  if (day %in% c(&quot;Monday&quot;, &quot;Tuesday&quot;, &quot;Wednesday&quot;, &quot;Thursday&quot;, &quot;Friday&quot;))  return(&quot;weekday&quot;)  else if (day %in% c(&quot;Saturday&quot;, &quot;Sunday&quot;))  return(&quot;weekend&quot;)  else  stop(&quot;invalid date&quot;) } filled.data$date <- as.Date(filled.data$date) filled.data$day <- sapply(filled.data$date, FUN=weekday.or.weekend) &#96;&#96;&#96;</p>
+
+<p>Now, let's make a panel plot containing plots of average number of steps taken on weekdays and weekends. &#96;&#96;&#96;{r} averages <- aggregate(steps ~ interval + day, data=filled.data, mean) ggplot(averages, aes(interval, steps)) + geom_line() + facet_grid(day ~ .) +  xlab(&quot;5-minute interval&quot;) + ylab(&quot;Number of steps&quot;) &#96;&#96;&#96;</p>
